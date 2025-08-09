@@ -1,0 +1,172 @@
+.blog-post-page {
+  padding: 2rem 0;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--golf-green);
+  text-decoration: none;
+  margin-bottom: 2rem;
+  font-weight: 500;
+  transition: gap 0.2s ease;
+}
+
+.back-link:hover {
+  gap: 0.75rem;
+}
+
+.blog-post {
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.post-header {
+  position: relative;
+}
+
+.post-image {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+}
+
+.post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin: 2rem 2rem 1rem;
+  font-size: 0.9rem;
+  color: var(--text-light);
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.post-title {
+  margin: 0 2rem 2rem;
+  color: var(--text-dark);
+  line-height: 1.2;
+}
+
+.post-content {
+  padding: 0 2rem 2rem;
+  line-height: 1.8;
+}
+
+.post-content h1,
+.post-content h2,
+.post-content h3,
+.post-content h4 {
+  color: var(--golf-green);
+  margin: 2rem 0 1rem;
+}
+
+.post-content h1 {
+  font-size: 2rem;
+  border-bottom: 3px solid var(--golf-green);
+  padding-bottom: 0.5rem;
+}
+
+.post-content h2 {
+  font-size: 1.5rem;
+}
+
+.post-content h3 {
+  font-size: 1.25rem;
+}
+
+.post-content h4 {
+  font-size: 1.1rem;
+}
+
+.post-content p {
+  margin-bottom: 1.5rem;
+  color: var(--text-dark);
+}
+
+.post-content ul {
+  margin-bottom: 1.5rem;
+  padding-left: 2rem;
+}
+
+.post-content li {
+  margin-bottom: 0.5rem;
+  color: var(--text-dark);
+}
+
+.post-footer {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.share-section {
+  margin-bottom: 2rem;
+}
+
+.share-section h3 {
+  margin-bottom: 1rem;
+  color: var(--golf-green);
+}
+
+.share-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.share-btn {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--golf-green);
+  background: transparent;
+  color: var(--golf-green);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.share-btn:hover {
+  background: var(--golf-green);
+  color: white;
+}
+
+.navigation-section {
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .blog-post-page {
+    padding: 1rem;
+  }
+  
+  .post-meta {
+    margin: 1rem 1rem 0.5rem;
+    gap: 1rem;
+  }
+  
+  .post-title {
+    margin: 0.5rem 1rem 1rem;
+    font-size: 1.75rem;
+  }
+  
+  .post-content {
+    padding: 0 1rem 1rem;
+  }
+  
+  .post-content h1 {
+    font-size: 1.5rem;
+  }
+  
+  .share-buttons {
+    justify-content: center;
+  }
+}

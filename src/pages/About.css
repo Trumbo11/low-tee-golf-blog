@@ -1,0 +1,209 @@
+.about-page {
+  padding: 2rem 0;
+}
+
+.about-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.about-header h1 {
+  color: var(--golf-green);
+  margin-bottom: 1rem;
+}
+
+.about-header p {
+  font-size: 1.2rem;
+  color: var(--text-light);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.about-content {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.about-story {
+  margin-bottom: 4rem;
+}
+
+.about-story h2 {
+  color: var(--golf-green);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.about-story p {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  margin-bottom: 1.5rem;
+  color: var(--text-dark);
+}
+
+.values-section {
+  margin-bottom: 4rem;
+}
+
+.values-section h2 {
+  color: var(--golf-green);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.values-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.value-card {
+  text-align: center;
+  padding: 2rem;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.value-card:hover {
+  transform: translateY(-4px);
+}
+
+.value-icon {
+  color: var(--golf-green);
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.value-card h3 {
+  color: var(--text-dark);
+  margin-bottom: 1rem;
+}
+
+.value-card p {
+  color: var(--text-light);
+  line-height: 1.6;
+}
+
+.team-section {
+  margin-bottom: 4rem;
+}
+
+.team-section h2 {
+  color: var(--golf-green);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.team-member {
+  text-align: center;
+  padding: 2rem;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.team-member:hover {
+  transform: translateY(-4px);
+}
+
+.member-photo {
+  margin-bottom: 1rem;
+}
+
+.member-photo img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid var(--golf-green);
+}
+
+.team-member h3 {
+  color: var(--text-dark);
+  margin-bottom: 0.5rem;
+}
+
+.member-title {
+  color: var(--golf-green);
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.team-member p:last-child {
+  color: var(--text-light);
+  line-height: 1.6;
+}
+
+.mission-section {
+  background: var(--golf-gray);
+  padding: 3rem;
+  border-radius: 10px;
+  margin-bottom: 2rem;
+}
+
+.mission-section h2 {
+  color: var(--golf-green);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.mission-content p {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  margin-bottom: 2rem;
+  color: var(--text-dark);
+}
+
+.mission-content ul {
+  list-style: none;
+  padding: 0;
+}
+
+.mission-content li {
+  padding: 0.75rem 0;
+  padding-left: 2rem;
+  position: relative;
+  color: var(--text-dark);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.mission-content li::before {
+  content: "⛳";
+  position: absolute;
+  left: 0;
+  color: var(--golf-green);
+}
+
+@media (max-width: 768px) {
+  .about-page {
+    padding: 1rem 0;
+  }
+  
+  .values-grid,
+  .team-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .mission-section {
+    padding: 2rem 1rem;
+  }
+  
+  .about-story p,
+  .mission-content p {
+    font-size: 1rem;
+  }
+}
