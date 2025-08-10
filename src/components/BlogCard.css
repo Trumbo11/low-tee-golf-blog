@@ -13,11 +13,21 @@
 
 .card-meta {
   display: flex;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-direction: column;
   gap: 1rem;
   margin-bottom: 1rem;
   font-size: 0.875rem;
   color: var(--text-light);
+}
+
+.meta-top-items-wrapper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-direction: row;
+  gap: 1rem;
 }
 
 .meta-item {

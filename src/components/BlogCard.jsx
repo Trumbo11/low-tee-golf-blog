@@ -13,7 +13,8 @@ const BlogCard = ({ post }) => {
       />
       <div className="card-content">
         <div className="card-meta">
-          <span className="meta-item">
+          <div className='meta-top-items-wrapper'>
+            <span className="meta-item">
             <Calendar size={14} />
             {new Date(post.date).toLocaleDateString()}
           </span>
@@ -21,7 +22,8 @@ const BlogCard = ({ post }) => {
             <User size={14} />
             {post.author}
           </span>
-          <span className="category-tag">{post.category}</span>
+          </div>
+          <div className="category-tag">{post.category}</div>
         </div>
         <h3 className="card-title">
           <Link to={`/blog/${post.slug}`}>{post.title}</Link>
