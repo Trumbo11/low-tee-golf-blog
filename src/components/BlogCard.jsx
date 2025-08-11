@@ -6,11 +6,13 @@ import './BlogCard.css'
 const BlogCard = ({ post }) => {
   return (
     <article className="blog-card card">
+      {post.image && (
       <img 
         src={post.image} 
         alt={post.title}
         className="card-image"
       />
+      )}
       <div className="card-content">
         <div className="card-meta">
           <div className='meta-top-items-wrapper'>

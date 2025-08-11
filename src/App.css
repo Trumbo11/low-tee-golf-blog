@@ -13,12 +13,14 @@ main {
   --golf-green: #2c7a2c;
   --golf-green-dark: #1e5a1e;
   --golf-green-light: #4a9b4a;
-  --golf-sand: #f4e4bc;
   --golf-sky: #87ceeb;
   --golf-white: #ffffff;
   --golf-gray: #f8f9fa;
   --text-dark: #333333;
   --text-light: #666666;
+  --golf-sand: #F6EEDC;
+  --golf-woods: #284E2E;
+  --golf-copper: #BC6428;
 }
 
 /* Hero section styles */

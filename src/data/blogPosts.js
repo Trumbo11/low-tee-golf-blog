@@ -324,7 +324,7 @@ Remember, the slice is fixable with proper technique and consistent practice!
     author: "Mike Johnson",
     date: "2023-12-28",
     category: "Tips",
-    image: "https://images.unsplash.com/photo-1587987073090-91052aa79ca5?w=400&h=200&fit=crop",
+    image: "",
     featured: false
   }
 ]
