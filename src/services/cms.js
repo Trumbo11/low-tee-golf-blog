@@ -6,8 +6,12 @@
 const getCmsBaseUrl = () => {
   const proxyBase = '/api'
   const direct = String(import.meta?.env?.VITE_CMS_URL || '').trim()
-  // Allow explicit override to bypass functions if needed
-  if (direct) return direct.replace(/\/$/, '')
+  // If a direct URL is provided, normalize to include '/api' suffix for Strapi-like/CMS server
+  if (direct) {
+    const normalized = direct.replace(/\/$/, '')
+    if (/\/api$/i.test(normalized)) return normalized
+    return `${normalized}/api`
+  }
   return proxyBase
 }
 
@@ -95,7 +99,9 @@ export const fetchPostsFromCms = async ({ category, featured } = {}) => {
 export const fetchPostBySlugFromCms = async (slug) => {
   const base = getCmsBaseUrl()
   if (!base) return null
-  const res = await fetch(`${base}/post/${encodeURIComponent(slug)}`, {
+  const isProxyBase = base.startsWith('/') // '/api' means proxy/functions path
+  const segment = isProxyBase ? 'post' : 'posts'
+  const res = await fetch(`${base}/${segment}/${encodeURIComponent(slug)}`, {
     headers: {
       ...getAuthHeaders(),
     },

@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Low Tee CMS Admin</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 20px; }
+      input, select, textarea, button { font: inherit; padding: 8px; margin: 4px 0; }
+      .row { display: flex; gap: 12px; align-items: center; }
+      .card { border: 1px solid #ddd; padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+      .muted { color: #666; }
+      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+      @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <h1>Low Tee CMS Admin</h1>
+    <div class="card">
+      <h3>Service Access</h3>
+      <div class="row">
+        <label>Service Token</label>
+        <input id="serviceToken" placeholder="SERVICE_TOKEN" />
+        <button onclick="loadData()">Connect</button>
+      </div>
+      <div class="muted">Use your SERVICE_TOKEN (dev) to call private endpoints locally.</div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Categories</h3>
+        <div class="row">
+          <input id="catName" placeholder="Name" />
+          <input id="catSlug" placeholder="Slug" />
+          <button onclick="createCategory()">Add</button>
+        </div>
+        <div id="categories"></div>
+      </div>
+
+      <div class="card">
+        <h3>New Post</h3>
+        <div class="row"><input id="title" placeholder="Title" style="width:100%" /></div>
+        <div class="row"><input id="slug" placeholder="Slug" style="width:100%" /></div>
+        <div class="row"><input id="excerpt" placeholder="Excerpt" style="width:100%" /></div>
+        <div class="row"><textarea id="content" placeholder="Content (markdown ok)" rows="6" style="width:100%"></textarea></div>
+        <div class="row">
+          <input id="author" placeholder="Author" />
+          <input id="date" type="date" />
+        </div>
+        <div class="row">
+          <input id="image" placeholder="Image URL" style="width:100%" />
+        </div>
+        <div class="row">
+          <label><input type="checkbox" id="featured" /> Featured</label>
+          <select id="categorySelect"></select>
+          <button onclick="createPost()">Create</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Posts</h3>
+      <div id="posts"></div>
+    </div>
+
+    <script>
+      const api = (path, opts = {}) => {
+        const token = localStorage.getItem('svc_token') || ''
+        const headers = { 'content-type': 'application/json' }
+        if (token) headers['authorization'] = 'Bearer ' + token
+        return fetch(path, { ...opts, headers })
+      }
+
+      async function loadData() {
+        const token = document.getElementById('serviceToken').value.trim()
+        if (token) localStorage.setItem('svc_token', token)
+        await refreshCategories()
+        await refreshPosts()
+      }
+
+      async function refreshCategories() {
+        const res = await api('/api/categories')
+        if (!res.ok) { alert('Failed to load categories'); return }
+        const cats = await res.json()
+        const el = document.getElementById('categories')
+        el.innerHTML = cats.map(c => `<div>${c.name} <span class="muted">(${c.slug})</span></div>`).join('')
+        const sel = document.getElementById('categorySelect')
+        sel.innerHTML = cats.map(c => `<option value="${c.slug}">${c.name}</option>`).join('')
+      }
+
+      async function refreshPosts() {
+        const res = await api('/api/posts')
+        if (!res.ok) { document.getElementById('posts').innerHTML = 'Failed to load posts'; return }
+        const posts = await res.json()
+        document.getElementById('posts').innerHTML = posts.map(p => `
+          <div class="row" style="justify-content: space-between;">
+            <div>
+              <strong>${p.title}</strong> <span class="muted">(${p.slug})</span>
+              <div class="muted">${p.category} • ${new Date(p.date).toLocaleDateString()}</div>
+            </div>
+            <div>
+              <button onclick="del(${p.id})">Delete</button>
+            </div>
+          </div>
+        `).join('')
+      }
+
+      async function createCategory() {
+        const name = document.getElementById('catName').value.trim()
+        const slug = document.getElementById('catSlug').value.trim()
+        const res = await api('/api/categories', { method: 'POST', body: JSON.stringify({ name, slug }) })
+        if (!res.ok) { alert('Failed to create category'); return }
+        document.getElementById('catName').value = ''
+        document.getElementById('catSlug').value = ''
+        await refreshCategories()
+      }
+
+      async function createPost() {
+        const payload = {
+          title: document.getElementById('title').value.trim(),
+          slug: document.getElementById('slug').value.trim(),
+          excerpt: document.getElementById('excerpt').value.trim(),
+          content: document.getElementById('content').value.trim(),
+          author: document.getElementById('author').value.trim(),
+          date: document.getElementById('date').value ? new Date(document.getElementById('date').value) : undefined,
+          image: document.getElementById('image').value.trim() || undefined,
+          featured: document.getElementById('featured').checked,
+          categorySlug: document.getElementById('categorySelect').value,
+        }
+        const res = await api('/api/posts', { method: 'POST', body: JSON.stringify(payload) })
+        if (!res.ok) { alert('Failed to create post'); return }
+        document.getElementById('title').value = ''
+        document.getElementById('slug').value = ''
+        document.getElementById('excerpt').value = ''
+        document.getElementById('content').value = ''
+        document.getElementById('author').value = ''
+        document.getElementById('date').value = ''
+        document.getElementById('image').value = ''
+        document.getElementById('featured').checked = false
+        await refreshPosts()
+      }
+
+      async function del(id) {
+        if (!confirm('Delete this post?')) return
+        const res = await api('/api/posts/' + id, { method: 'DELETE' })
+        if (!res.ok) { alert('Delete failed'); return }
+        await refreshPosts()
+      }
+    </script>
+  </body>
+</html>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { TrendingUp, Users, Award, BookOpen } from 'lucide-react'
 import BlogCard from '../components/BlogCard'
 import { getFeaturedPosts } from '../data/blogPosts'
-import { isCmsEnabled, fetchPostsFromCms } from '../services/cms'
+import { fetchPostsFromCms } from '../services/cms'
 
 const Home = () => {
   const [remotePosts, setRemotePosts] = useState(null)
@@ -12,10 +12,6 @@ const Home = () => {
   useEffect(() => {
     let isActive = true
     const run = async () => {
-      if (!isCmsEnabled()) {
-        setRemotePosts(null)
-        return
-      }
       try {
         const posts = await fetchPostsFromCms({ featured: true })
         if (isActive) setRemotePosts(posts)

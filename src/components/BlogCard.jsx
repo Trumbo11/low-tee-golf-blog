@@ -1,11 +1,19 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Calendar, User, ArrowRight } from 'lucide-react'
 import './BlogCard.css'
 
 const BlogCard = ({ post }) => {
+  const navigate = useNavigate()
+  const slug = String(post?.slug || '').trim()
+  const to = slug ? `/blog/${encodeURIComponent(slug)}` : undefined
+
+  const handleCardClick = () => {
+    if (to) navigate(to)
+  }
+
   return (
-    <article className="blog-card card">
+    <article className="blog-card card" onClick={handleCardClick} style={{ cursor: to ? 'pointer' : 'default' }}>
       {post.image && (
       <img 
         src={post.image} 
@@ -28,13 +36,15 @@ const BlogCard = ({ post }) => {
           <div className="category-tag">{post.category}</div>
         </div>
         <h3 className="card-title">
-          <Link to={`/blog/${post.slug}`}>{post.title}</Link>
+          {to ? <Link to={to}>{post.title}</Link> : post.title}
         </h3>
         <p className="card-excerpt">{post.excerpt}</p>
-        <Link to={`/blog/${post.slug}`} className="read-more">
-          Read More
-          <ArrowRight size={16} />
-        </Link>
+        {to && (
+          <Link to={to} className="read-more">
+            Read More
+            <ArrowRight size={16} />
+          </Link>
+        )}
       </div>
     </article>
   )

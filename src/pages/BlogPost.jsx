@@ -2,26 +2,26 @@ import React, { useEffect, useState, useMemo } from 'react'
 import { useParams, Link, Navigate } from 'react-router-dom'
 import { Calendar, User, ArrowLeft, Tag } from 'lucide-react'
 import { getPostBySlug } from '../data/blogPosts'
-import { isCmsEnabled, fetchPostBySlugFromCms } from '../services/cms'
+import { fetchPostBySlugFromCms } from '../services/cms'
 import './BlogPost.css'
 
 const BlogPost = () => {
   const { slug } = useParams()
   const [remotePost, setRemotePost] = useState(null)
   const [remoteError, setRemoteError] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     let isActive = true
     const run = async () => {
-      if (!isCmsEnabled()) {
-        setRemotePost(null)
-        return
-      }
+      setIsLoading(true)
       try {
         const p = await fetchPostBySlugFromCms(slug)
         if (isActive) setRemotePost(p)
       } catch (err) {
         if (isActive) setRemoteError(err)
+      } finally {
+        if (isActive) setIsLoading(false)
       }
     }
     run()
@@ -32,7 +32,18 @@ const BlogPost = () => {
     return (remotePost && !remoteError) ? remotePost : getPostBySlug(slug)
   }, [remotePost, remoteError, slug])
 
-  if (!post) {
+  // While loading and no local fallback exists, show nothing (or a simple loading state)
+  if (!post && isLoading) {
+    return (
+      <div className="blog-post-page">
+        <div className="container">
+          <div className="post-loading">Loading…</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!post && !isLoading) {
     return <Navigate to="/blog" replace />
   }
 

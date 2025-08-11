@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import BlogCard from '../components/BlogCard'
 import { blogPosts } from '../data/blogPosts'
-import { isCmsEnabled, fetchPostsFromCms } from '../services/cms'
+import { fetchPostsFromCms } from '../services/cms'
 import './Blog.css'
 
 const Blog = () => {
@@ -13,18 +13,15 @@ const Blog = () => {
   // Read the category directly from the URL every render
   const selectedCategory = searchParams.get('category') || ''
 
-  // Fetch from CMS if configured; gracefully fall back to local data
+  // Attempt to fetch from CMS; gracefully fall back to local data
   useEffect(() => {
     let isActive = true
     const run = async () => {
-      if (!isCmsEnabled()) {
-        setRemotePosts(null)
-        return
-      }
       try {
         const posts = await fetchPostsFromCms()
         if (isActive) setRemotePosts(posts)
       } catch (err) {
+        console.error('[CMS] Failed to fetch posts', err)
         if (isActive) setRemoteError(err)
       }
     }
