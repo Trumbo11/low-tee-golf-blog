@@ -1,12 +1,36 @@
-import React from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useParams, Link, Navigate } from 'react-router-dom'
 import { Calendar, User, ArrowLeft, Tag } from 'lucide-react'
 import { getPostBySlug } from '../data/blogPosts'
+import { isCmsEnabled, fetchPostBySlugFromCms } from '../services/cms'
 import './BlogPost.css'
 
 const BlogPost = () => {
   const { slug } = useParams()
-  const post = getPostBySlug(slug)
+  const [remotePost, setRemotePost] = useState(null)
+  const [remoteError, setRemoteError] = useState(null)
+
+  useEffect(() => {
+    let isActive = true
+    const run = async () => {
+      if (!isCmsEnabled()) {
+        setRemotePost(null)
+        return
+      }
+      try {
+        const p = await fetchPostBySlugFromCms(slug)
+        if (isActive) setRemotePost(p)
+      } catch (err) {
+        if (isActive) setRemoteError(err)
+      }
+    }
+    run()
+    return () => { isActive = false }
+  }, [slug])
+
+  const post = useMemo(() => {
+    return (remotePost && !remoteError) ? remotePost : getPostBySlug(slug)
+  }, [remotePost, remoteError, slug])
 
   if (!post) {
     return <Navigate to="/blog" replace />

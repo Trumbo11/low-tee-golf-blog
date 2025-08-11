@@ -1,11 +1,36 @@
-import React from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { TrendingUp, Users, Award, BookOpen } from 'lucide-react'
 import BlogCard from '../components/BlogCard'
 import { getFeaturedPosts } from '../data/blogPosts'
+import { isCmsEnabled, fetchPostsFromCms } from '../services/cms'
 
 const Home = () => {
-  const featuredPosts = getFeaturedPosts()
+  const [remotePosts, setRemotePosts] = useState(null)
+  const [remoteError, setRemoteError] = useState(null)
+
+  useEffect(() => {
+    let isActive = true
+    const run = async () => {
+      if (!isCmsEnabled()) {
+        setRemotePosts(null)
+        return
+      }
+      try {
+        const posts = await fetchPostsFromCms({ featured: true })
+        if (isActive) setRemotePosts(posts)
+      } catch (err) {
+        if (isActive) setRemoteError(err)
+      }
+    }
+    run()
+    return () => { isActive = false }
+  }, [])
+
+  const featuredPosts = useMemo(() => {
+    if (remotePosts && !remoteError) return remotePosts
+    return getFeaturedPosts()
+  }, [remotePosts, remoteError])
 
   return (
     <div className="home">

@@ -340,10 +340,10 @@ export const getPostBySlug = (slug) => {
 
 export const getPostsByCategory = (category) => {
   if (!category) return blogPosts
-  return blogPosts.filter(post => post.category.toLowerCase() === category.toLowerCase())
+  return blogPosts.filter(post => (post.category || '').toLowerCase() === category.toLowerCase())
 }
 
 export const getAllCategories = () => {
-  const categories = [...new Set(blogPosts.map(post => post.category))]
+  const categories = [...new Set(blogPosts.map(post => post.category).filter(Boolean))]
   return categories
 }
