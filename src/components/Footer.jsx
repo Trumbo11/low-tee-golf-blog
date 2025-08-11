@@ -1,10 +1,21 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Mail, Phone, MapPin } from 'lucide-react'
 import './Footer.css'
 
 const Footer = () => {
-  const currentYear = new Date().getFullYear()
+  const currentYear = new Date().getFullYear();
+  const location = useLocation();
+
+  const categoryTo = (category) => {
+    const params = new URLSearchParams(location.search);
+    params.set('category', category);
+    params.set('utm_source', 'footer'); // replace/update every click
+    return {
+      pathname: '/blog',
+      search: `?${params.toString()}`
+    };
+  };
 
   return (
     <footer className="footer">
@@ -31,7 +42,10 @@ const Footer = () => {
           <div className="footer-section">
             <h4>Categories</h4>
             <ul className="footer-links">
-              <li><Link to="/blog?category=tips">Golf Tips</Link></li>
+              <li><Link to={categoryTo('Tips')}>Golf Tips</Link></li>
+
+
+
               <li><Link to="/blog?category=reviews">Course Reviews</Link></li>
               <li><Link to="/blog?category=equipment">Equipment</Link></li>
               <li><Link to="/blog?category=news">Golf News</Link></li>

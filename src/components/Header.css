@@ -86,12 +86,14 @@
     visibility: hidden;
     transition: all 0.3s ease;
     padding: 20px 10px;
+    display: none;
   }
 
   .nav-open {
     transform: translateX(0);
     opacity: 1;
     visibility: visible;
+    display: flex;
   }
 
   .nav-link {

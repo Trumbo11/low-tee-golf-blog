@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import BlogCard from '../components/BlogCard'
 import { blogPosts, getPostsByCategory, getAllCategories } from '../data/blogPosts'
@@ -6,23 +6,26 @@ import './Blog.css'
 
 const Blog = () => {
   const [searchParams, setSearchParams] = useSearchParams()
-  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '')
-  const [filteredPosts, setFilteredPosts] = useState(blogPosts)
-  
+
+  // Read the category directly from the URL every render
+  const selectedCategory = searchParams.get('category') || ''
+
+  // Derive posts from the selected category (no local state needed)
+  const filteredPosts = useMemo(() => {
+    return selectedCategory ? getPostsByCategory(selectedCategory) : blogPosts
+  }, [selectedCategory])
+
   const categories = getAllCategories()
 
-  useEffect(() => {
-    if (selectedCategory) {
-      setFilteredPosts(getPostsByCategory(selectedCategory))
-      setSearchParams({ category: selectedCategory })
+  // Helper that MERGES params (preserves utm and others)
+  const setCategory = (category) => {
+    const next = new URLSearchParams(searchParams)
+    if (category) {
+      next.set('category', category)
     } else {
-      setFilteredPosts(blogPosts)
-      setSearchParams({})
+      next.delete('category')
     }
-  }, [selectedCategory, setSearchParams])
-
-  const handleCategoryChange = (category) => {
-    setSelectedCategory(category)
+    setSearchParams(next) // no replace -> pushes history; use { replace:true } if you prefer
   }
 
   return (
@@ -34,9 +37,9 @@ const Blog = () => {
         </header>
 
         <div className="blog-filters">
-          <button 
+          <button
             className={`filter-btn ${selectedCategory === '' ? 'active' : ''}`}
-            onClick={() => handleCategoryChange('')}
+            onClick={() => setCategory('')}
           >
             All Posts
           </button>
@@ -44,7 +47,7 @@ const Blog = () => {
             <button
               key={category}
               className={`filter-btn ${selectedCategory === category ? 'active' : ''}`}
-              onClick={() => handleCategoryChange(category)}
+              onClick={() => setCategory(category)}
             >
               {category}
             </button>
@@ -53,9 +56,7 @@ const Blog = () => {
 
         <div className="blog-grid">
           {filteredPosts.length > 0 ? (
-            filteredPosts.map((post) => (
-              <BlogCard key={post.id} post={post} />
-            ))
+            filteredPosts.map((post) => <BlogCard key={post.id} post={post} />)
           ) : (
             <div className="no-posts">
               <h3>No posts found</h3>

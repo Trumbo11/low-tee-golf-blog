@@ -325,7 +325,7 @@ Remember, the slice is fixable with proper technique and consistent practice!
     date: "2023-12-28",
     category: "Tips",
     image: "",
-    featured: false
+    featured: false,
   }
 ]
 
