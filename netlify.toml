@@ -19,3 +19,4 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  VITE_USE_CMS = "true"

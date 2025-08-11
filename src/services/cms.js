@@ -4,8 +4,10 @@
 // In private-read mode, we hit our own Netlify Functions under /api/*
 // Toggle on via VITE_USE_CMS=true (or supply a direct VITE_CMS_URL if you bypass functions).
 const getCmsBaseUrl = () => {
-  // Prefer proxy base
   const proxyBase = '/api'
+  const direct = String(import.meta?.env?.VITE_CMS_URL || '').trim()
+  // Allow explicit override to bypass functions if needed
+  if (direct) return direct.replace(/\/$/, '')
   return proxyBase
 }
 
