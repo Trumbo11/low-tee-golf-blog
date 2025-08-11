@@ -15,6 +15,12 @@ export const isCmsEnabled = () => {
   return String(import.meta?.env?.VITE_USE_CMS || '').toLowerCase() === 'true'
 }
 
+const getAuthHeaders = () => {
+  const maybeToken = String(import.meta?.env?.VITE_CMS_TOKEN || '').trim()
+  if (!maybeToken) return {}
+  return { Authorization: `Bearer ${maybeToken}` }
+}
+
 // Normalize upstream post (supports Strapi-like or flat custom shape)
 const normalizePost = (item) => {
   if (!item) return null
@@ -75,7 +81,11 @@ export const fetchPostsFromCms = async ({ category, featured } = {}) => {
   if (featured !== undefined) queryParams['featured'] = String(Boolean(featured))
 
   const qs = buildQueryString(queryParams)
-  const res = await fetch(`${base}/posts?${qs}`)
+  const res = await fetch(`${base}/posts?${qs}`, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  })
   if (!res.ok) throw new Error(`Failed to fetch posts: ${res.status}`)
   const data = await res.json()
   const items = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : [])
@@ -85,7 +95,11 @@ export const fetchPostsFromCms = async ({ category, featured } = {}) => {
 export const fetchPostBySlugFromCms = async (slug) => {
   const base = getCmsBaseUrl()
   if (!base) return null
-  const res = await fetch(`${base}/post/${encodeURIComponent(slug)}`)
+  const res = await fetch(`${base}/post/${encodeURIComponent(slug)}`, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  })
   if (!res.ok) throw new Error(`Failed to fetch post: ${res.status}`)
   const data = await res.json()
   const item = data?.data ?? data
