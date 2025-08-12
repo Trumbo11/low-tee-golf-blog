@@ -4,6 +4,7 @@ import { Calendar, User, ArrowLeft, Tag } from 'lucide-react'
 import { getPostBySlug } from '../data/blogPosts'
 import { fetchPostBySlugFromCms } from '../services/cms'
 import './BlogPost.css'
+import DOMPurify from 'dompurify'
 
 const BlogPost = () => {
   const { slug } = useParams()
@@ -47,45 +48,16 @@ const BlogPost = () => {
     return <Navigate to="/blog" replace />
   }
 
-  // Convert markdown-style content to JSX (basic implementation)
-  const formatContent = (content) => {
-    const lines = content.trim().split('\n')
-    const elements = []
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]
-      
-      if (line.startsWith('# ')) {
-        elements.push(<h1 key={i}>{line.substring(2)}</h1>)
-      } else if (line.startsWith('## ')) {
-        elements.push(<h2 key={i}>{line.substring(3)}</h2>)
-      } else if (line.startsWith('### ')) {
-        elements.push(<h3 key={i}>{line.substring(4)}</h3>)
-      } else if (line.startsWith('#### ')) {
-        elements.push(<h4 key={i}>{line.substring(5)}</h4>)
-      } else if (line.startsWith('- ')) {
-        // Handle list items
-        const listItems = []
-        let j = i
-        while (j < lines.length && lines[j].startsWith('- ')) {
-          listItems.push(<li key={j}>{lines[j].substring(2)}</li>)
-          j++
-        }
-        elements.push(<ul key={i}>{listItems}</ul>)
-        i = j - 1
-      } else if (line.trim() === '') {
-        // Skip empty lines
-        continue
-      } else {
-        // Regular paragraph
-        if (line.trim()) {
-          elements.push(<p key={i}>{line}</p>)
-        }
-      }
-    }
-    
-    return elements
+  // Render HTML content safely
+  const renderHtml = (html) => {
+    const clean = DOMPurify.sanitize(html || '', { USE_PROFILES: { html: true } })
+    return <div dangerouslySetInnerHTML={{ __html: clean }} />
   }
+
+  // Normalize image: allow relative '/uploads/..' from CMS
+  const imgSrc = (post.image || '').startsWith('http') || (post.image || '').startsWith('/')
+    ? post.image
+    : ''
 
   return (
     <div className="blog-post-page">
@@ -97,11 +69,12 @@ const BlogPost = () => {
         
         <article className="blog-post">
           <header className="post-header">
+            {imgSrc && (
             <img 
-              src={post.image} 
+              src={imgSrc} 
               alt={post.title}
               className="post-image"
-            />
+            />)}
             <div className="post-meta">
               <span className="meta-item">
                 <Calendar size={16} />
@@ -124,7 +97,7 @@ const BlogPost = () => {
           </header>
           
           <div className="post-content">
-            {formatContent(post.content)}
+            {renderHtml(post.content)}
           </div>
         </article>
 

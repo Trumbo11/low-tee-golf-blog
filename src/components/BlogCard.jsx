@@ -12,11 +12,16 @@ const BlogCard = ({ post }) => {
     if (to) navigate(to)
   }
 
+  // Normalize image: allow relative '/uploads/..' from CMS
+  const imgSrc = (post.image || '').startsWith('http') || (post.image || '').startsWith('/')
+    ? post.image
+    : ''
+
   return (
     <article className="blog-card card" onClick={handleCardClick} style={{ cursor: to ? 'pointer' : 'default' }}>
-      {post.image && (
+      {imgSrc && (
       <img 
-        src={post.image} 
+        src={imgSrc} 
         alt={post.title}
         className="card-image"
       />

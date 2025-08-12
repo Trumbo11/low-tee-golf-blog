@@ -4,6 +4,9 @@ import cors from 'cors'
 import jwt from 'jsonwebtoken'
 import { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
+import multer from 'multer'
+import path from 'path'
+import fs from 'fs'
 
 const app = express()
 const prisma = new PrismaClient()
@@ -65,6 +68,22 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))
 app.use('/admin', express.static('public', { index: 'admin.html' }))
+app.use('/uploads', express.static('uploads'))
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(process.cwd(), 'uploads')
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir)
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname)
+    const base = path.basename(file.originalname, ext)
+    const safe = base.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+    cb(null, `${safe}-${Date.now()}${ext}`)
+  }
+})
+const upload = multer({ storage })
 
 // Simple admin auth (token issuance) — for admin UI use only
 app.post('/api/auth/token', async (req, res) => {
@@ -102,10 +121,15 @@ app.get('/health', (_req, res) => res.json({ ok: true }))
 // Private read endpoints consumed by Netlify Functions
 app.get('/api/posts', requireBearer, async (req, res) => {
   try {
-    const { category, featured } = req.query
+    const { category, featured, all } = req.query
     const where = {}
     if (category) where.category = { name: { equals: String(category) } }
     if (featured !== undefined) where.featured = String(featured).toLowerCase() === 'true'
+    if (!all) {
+      // Only published (non-draft) and not in the future for public consumption
+      where.draft = false
+      where.date = { lte: new Date() }
+    }
 
     const posts = await prisma.post.findMany({
       where,
@@ -123,6 +147,7 @@ app.get('/api/posts', requireBearer, async (req, res) => {
       date: p.date.toISOString(),
       image: p.image || '',
       featured: p.featured,
+      draft: p.draft,
       category: p.category.name,
     })))
   } catch (e) {
@@ -133,11 +158,17 @@ app.get('/api/posts', requireBearer, async (req, res) => {
 app.get('/api/posts/:slug', requireBearer, async (req, res) => {
   try {
     const { slug } = req.params
+    const { all } = req.query
     const p = await prisma.post.findUnique({
       where: { slug },
       include: { category: true },
     })
     if (!p) return res.status(404).json({ error: 'Not found' })
+    if (!all) {
+      if (p.draft || p.date > new Date()) {
+        return res.status(404).json({ error: 'Not found' })
+      }
+    }
     res.json({
       id: p.id,
       title: p.title,
@@ -148,6 +179,7 @@ app.get('/api/posts/:slug', requireBearer, async (req, res) => {
       date: p.date.toISOString(),
       image: p.image || '',
       featured: p.featured,
+      draft: p.draft,
       category: p.category.name,
     })
   } catch (e) {
@@ -182,6 +214,7 @@ app.post('/api/categories', requireBearer, async (req, res) => {
 // Posts CRUD for admin
 app.post('/api/posts', requireBearer, async (req, res) => {
   try {
+    const ImageSchema = z.union([z.string().url(), z.string().regex(/^\/uploads\//)]).optional().nullable()
     const schema = z.object({
       title: z.string().min(1),
       slug: z.string().min(1),
@@ -189,8 +222,9 @@ app.post('/api/posts', requireBearer, async (req, res) => {
       content: z.string().min(1),
       author: z.string().min(1),
       date: z.coerce.date().optional(),
-      image: z.string().url().optional().nullable(),
+      image: ImageSchema,
       featured: z.coerce.boolean().optional(),
+      draft: z.coerce.boolean().optional(),
       categorySlug: z.string().min(1),
     })
     const parsed = schema.safeParse(req.body)
@@ -207,6 +241,7 @@ app.post('/api/posts', requireBearer, async (req, res) => {
         date: parsed.data.date || new Date(),
         image: parsed.data.image || null,
         featured: Boolean(parsed.data.featured),
+        draft: Boolean(parsed.data.draft),
         categoryId: category.id,
       }
     })
@@ -218,10 +253,47 @@ app.post('/api/posts', requireBearer, async (req, res) => {
   }
 })
 
+// Media library
+app.get('/api/media', requireBearer, async (_req, res) => {
+  try {
+    const items = await prisma.media.findMany({ orderBy: { createdAt: 'desc' } })
+    res.json(items)
+  } catch {
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+app.post('/api/media', requireBearer, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Missing file' })
+    const publicUrl = `/uploads/${req.file.filename}`
+    const created = await prisma.media.create({ data: { filename: req.file.originalname, url: publicUrl } })
+    res.status(201).json(created)
+  } catch (e) {
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+app.delete('/api/media/:id', requireBearer, async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' })
+    const item = await prisma.media.delete({ where: { id } })
+    // Best-effort unlink
+    const filePath = path.join(uploadsDir, path.basename(item.url))
+    fs.promises.unlink(filePath).catch(() => {})
+    res.status(204).send()
+  } catch (e) {
+    if (e.code === 'P2025') return res.status(404).json({ error: 'Not found' })
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 app.put('/api/posts/:id', requireBearer, async (req, res) => {
   try {
     const id = Number(req.params.id)
     if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' })
+    const ImageSchema = z.union([z.string().url(), z.string().regex(/^\/uploads\//)]).optional().nullable()
     const schema = z.object({
       title: z.string().min(1).optional(),
       slug: z.string().min(1).optional(),
@@ -229,8 +301,9 @@ app.put('/api/posts/:id', requireBearer, async (req, res) => {
       content: z.string().min(1).optional(),
       author: z.string().min(1).optional(),
       date: z.coerce.date().optional(),
-      image: z.string().url().optional().nullable(),
+      image: ImageSchema,
       featured: z.coerce.boolean().optional(),
+      draft: z.coerce.boolean().optional(),
       categorySlug: z.string().min(1).optional(),
     })
     const parsed = schema.safeParse(req.body)
@@ -248,6 +321,19 @@ app.put('/api/posts/:id', requireBearer, async (req, res) => {
     if (e.code === 'P2025') return res.status(404).json({ error: 'Not found' })
     if (e.code === 'P2002') return res.status(409).json({ error: 'Slug already exists' })
     console.error('PUT /api/posts/:id error:', e)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+// Unpublish (set draft=true) convenience endpoint
+app.post('/api/posts/:id/unpublish', requireBearer, async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' })
+    const updated = await prisma.post.update({ where: { id }, data: { draft: true } })
+    res.json(updated)
+  } catch (e) {
+    if (e.code === 'P2025') return res.status(404).json({ error: 'Not found' })
     res.status(500).json({ error: 'Server error' })
   }
 })

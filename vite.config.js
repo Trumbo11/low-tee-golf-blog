@@ -25,6 +25,11 @@ export default defineConfig(({ mode }) => {
             })
           },
         },
+        // Proxy uploaded media paths to CMS in dev
+        '/uploads': {
+          target: proxyTarget,
+          changeOrigin: true,
+        },
       },
     },
   }

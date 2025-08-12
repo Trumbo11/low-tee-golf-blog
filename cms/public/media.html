@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CMS • Media</title>
+    <link href="admin.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="row" style="justify-content: space-between; align-items:center; margin-bottom: 12px;">
+      <h1 style="margin:0">Media Library</h1>
+      <nav class="row" style="gap: 8px;">
+        <a href="/admin" class="muted">Posts</a>
+        <a href="/admin/categories.html" class="muted">Categories</a>
+        <a href="/admin/media.html"><strong>Media</strong></a>
+      </nav>
+    </div>
+
+    <div class="card">
+      <h3>Service Access</h3>
+      <div class="row">
+        <label>Service Token</label>
+        <input id="serviceToken" placeholder="SERVICE_TOKEN" />
+        <button onclick="loadData()">Connect</button>
+      </div>
+      <div class="muted">Uses your SERVICE_TOKEN to call private endpoints locally.</div>
+    </div>
+
+    <div class="card">
+      <h3>Upload</h3>
+      <form id="mediaUploadForm" enctype="multipart/form-data" class="row">
+        <input type="file" id="mediaFile" accept="image/*" />
+        <button type="submit">Upload</button>
+        <span id="mediaError" class="muted" style="margin-left:8px;"></span>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>Library</h3>
+      <div id="mediaGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:12px;"></div>
+    </div>
+
+    <script>
+      const api = (path, opts = {}) => {
+        const token = localStorage.getItem('svc_token') || ''
+        const headers = opts.body instanceof FormData ? {} : { 'content-type': 'application/json' }
+        if (token) headers['authorization'] = 'Bearer ' + token
+        return fetch(path, { ...opts, headers })
+      }
+
+      async function loadData() {
+        const token = document.getElementById('serviceToken').value.trim()
+        if (token) localStorage.setItem('svc_token', token)
+        await refreshMedia()
+      }
+
+      async function refreshMedia() {
+        const grid = document.getElementById('mediaGrid')
+        grid.innerHTML = 'Loading...'
+        const res = await api('/api/media')
+        if (!res.ok) { grid.innerHTML = 'Failed to load media'; return }
+        const items = await res.json()
+        grid.innerHTML = items.map(m => `
+          <div style="border:1px solid #eee; padding:6px; border-radius:6px; display:flex; flex-direction:column; gap:6px;">
+            <img src="${m.url}" alt="${m.filename}" style="width:100%; height:120px; object-fit:cover; border-radius:4px;"/>
+            <div class="column" style="justify-content: space-between;">
+              <input value="${m.url}" style="flex:1; max-width: 100%; box-sizing: border-box;" readonly />
+              <button data-url="${m.url}">Copy URL</button>
+              <button data-del="${m.id}">Delete</button>
+            </div>
+          </div>
+        `).join('')
+        Array.from(grid.querySelectorAll('button[data-url]')).forEach(btn => {
+          btn.addEventListener('click', async () => {
+            await navigator.clipboard.writeText(btn.getAttribute('data-url'))
+            btn.textContent = 'Copied!'
+            setTimeout(() => (btn.textContent = 'Copy URL'), 1500)
+          })
+        })
+        Array.from(grid.querySelectorAll('button[data-del]')).forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (!confirm('Delete this media item?')) return
+            const id = btn.getAttribute('data-del')
+            const res = await api('/api/media/' + id, { method: 'DELETE' })
+            if (!res.ok) { alert('Delete failed'); return }
+            await refreshMedia()
+          })
+        })
+      }
+
+      document.getElementById('mediaUploadForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        const file = document.getElementById('mediaFile').files[0]
+        if (!file) return
+        const fd = new FormData()
+        fd.append('file', file)
+        const res = await api('/api/media', { method: 'POST', body: fd })
+        if (!res.ok) {
+          const errText = await res.text().catch(() => '')
+          document.getElementById('mediaError').textContent = 'Upload failed' + (errText ? `: ${errText}` : '')
+          return
+        }
+        document.getElementById('mediaError').textContent = ''
+        await refreshMedia()
+        e.target.reset()
+      })
+
+      if (localStorage.getItem('svc_token')) loadData()
+    </script>
+  </body>
+</html>

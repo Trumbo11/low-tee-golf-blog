@@ -1,0 +1,81 @@
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  margin: 20px;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+  padding: 8px;
+  margin: 4px 0;
+}
+
+.ql-container.ql-snow {
+    border: 1px solid rgb(118,118,118) !important;
+}
+
+#posts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px 0;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.card {
+  border: 1px solid #ddd;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.muted {
+  color: #666;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 800px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.editor {
+  height: 220px;
+}
+
+/* Status pill with fixed width for alignment */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  min-width: 110px; /* ensures equal width for alignment */
+  padding: 0 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.status-published { background: #2ecc71; color: #fff; }
+.status-scheduled { background: #f1c40f; color: #222; }
+.status-draft { background: #e74c3c; color: #fff; }

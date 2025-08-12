@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CMS • Categories</title>
+    <link href="admin.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="row" style="justify-content: space-between; align-items:center; margin-bottom: 12px;">
+      <h1 style="margin:0">Categories</h1>
+      <nav class="row" style="gap: 8px;">
+        <a href="/admin" class="muted">Posts</a>
+        <a href="/admin/categories.html"><strong>Categories</strong></a>
+        <a href="/admin/media.html" class="muted">Media</a>
+      </nav>
+    </div>
+
+    <div class="card">
+      <h3>Service Access</h3>
+      <div class="row">
+        <label>Service Token</label>
+        <input id="serviceToken" placeholder="SERVICE_TOKEN" />
+        <button onclick="loadData()">Connect</button>
+      </div>
+      <div class="muted">Uses your SERVICE_TOKEN to call private endpoints locally.</div>
+    </div>
+
+    <div class="card">
+      <h3>Manage Categories</h3>
+      <div class="row"><input id="searchCategories" placeholder="Search categories" style="width:100%" /></div>
+      <div class="row">
+        <input id="catName" placeholder="Name" />
+        <input id="catSlug" placeholder="Slug" />
+        <button onclick="createCategory()">Add</button>
+      </div>
+      <div id="categories"></div>
+    </div>
+
+    <script>
+      const api = (path, opts = {}) => {
+        const token = localStorage.getItem('svc_token') || ''
+        const headers = { 'content-type': 'application/json' }
+        if (token) headers['authorization'] = 'Bearer ' + token
+        return fetch(path, { ...opts, headers })
+      }
+
+      async function loadData() {
+        const token = document.getElementById('serviceToken').value.trim()
+        if (token) localStorage.setItem('svc_token', token)
+        await refreshCategories()
+      }
+
+      const renderCategories = () => {
+        const cats = window._cats || []
+        const q = (document.getElementById('searchCategories')?.value || '').trim().toLowerCase()
+        const filtered = q
+          ? cats.filter(c => [c.name, c.slug].some(v => String(v || '').toLowerCase().includes(q)))
+          : cats
+        const el = document.getElementById('categories')
+        el.innerHTML = filtered.map(c => `<div>${c.name} <span class="muted">(${c.slug})</span></div>`).join('')
+      }
+
+      async function refreshCategories() {
+        const res = await api('/api/categories')
+        if (!res.ok) { alert('Failed to load categories'); return }
+        const cats = await res.json()
+        window._cats = cats
+        renderCategories()
+      }
+
+      async function createCategory() {
+        const name = document.getElementById('catName').value.trim()
+        const slug = document.getElementById('catSlug').value.trim()
+        const res = await api('/api/categories', { method: 'POST', body: JSON.stringify({ name, slug }) })
+        if (!res.ok) { alert('Failed to create category'); return }
+        document.getElementById('catName').value = ''
+        document.getElementById('catSlug').value = ''
+        await refreshCategories()
+      }
+
+      document.getElementById('searchCategories')?.addEventListener('input', renderCategories)
+
+      // Auto-connect if token already set
+      if (localStorage.getItem('svc_token')) loadData()
+    </script>
+  </body>
+</html>

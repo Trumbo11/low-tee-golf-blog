@@ -1,21 +1,31 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Low Tee CMS Admin</title>
-    <style>
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 20px; }
-      input, select, textarea, button { font: inherit; padding: 8px; margin: 4px 0; }
-      .row { display: flex; gap: 12px; align-items: center; }
-      .card { border: 1px solid #ddd; padding: 12px; border-radius: 8px; margin-bottom: 12px; }
-      .muted { color: #666; }
-      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-      @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
-    </style>
+    <link
+      href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css"
+      rel="stylesheet"
+    />
+    <link href="admin.css" rel="stylesheet" />
   </head>
   <body>
-    <h1>Low Tee CMS Admin</h1>
+    <div
+      class="row"
+      style="
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      "
+    >
+      <h1 style="margin: 0">CMS • Posts</h1>
+      <nav class="row" style="gap: 8px">
+        <a href="/admin"><strong>Posts</strong></a>
+        <a href="/admin/categories.html" class="muted">Categories</a>
+        <a href="/admin/media.html" class="muted">Media</a>
+      </nav>
+    </div>
     <div class="card">
       <h3>Service Access</h3>
       <div class="row">
@@ -23,129 +33,801 @@
         <input id="serviceToken" placeholder="SERVICE_TOKEN" />
         <button onclick="loadData()">Connect</button>
       </div>
-      <div class="muted">Use your SERVICE_TOKEN (dev) to call private endpoints locally.</div>
+      <div class="muted">
+        Use your SERVICE_TOKEN (dev) to call private endpoints locally.
+      </div>
     </div>
 
-    <div class="grid">
-      <div class="card">
-        <h3>Categories</h3>
-        <div class="row">
-          <input id="catName" placeholder="Name" />
-          <input id="catSlug" placeholder="Slug" />
-          <button onclick="createCategory()">Add</button>
-        </div>
-        <div id="categories"></div>
+    <div class="card">
+      <h3>New Post</h3>
+      <div class="row">
+        <input id="title" placeholder="Title" style="width: 100%" />
       </div>
-
-      <div class="card">
-        <h3>New Post</h3>
-        <div class="row"><input id="title" placeholder="Title" style="width:100%" /></div>
-        <div class="row"><input id="slug" placeholder="Slug" style="width:100%" /></div>
-        <div class="row"><input id="excerpt" placeholder="Excerpt" style="width:100%" /></div>
-        <div class="row"><textarea id="content" placeholder="Content (markdown ok)" rows="6" style="width:100%"></textarea></div>
-        <div class="row">
-          <input id="author" placeholder="Author" />
-          <input id="date" type="date" />
-        </div>
-        <div class="row">
-          <input id="image" placeholder="Image URL" style="width:100%" />
-        </div>
-        <div class="row">
-          <label><input type="checkbox" id="featured" /> Featured</label>
-          <select id="categorySelect"></select>
-          <button onclick="createPost()">Create</button>
-        </div>
+      <div class="row">
+        <input
+          id="slug"
+          placeholder="Slug (auto from title)"
+          style="width: 100%"
+        />
+        <button type="button" id="genSlugBtn">Generate</button>
+        <button type="button" id="editSlugBtn" style="display: none">
+          Edit Slug
+        </button>
+        <button type="button" id="lockSlugBtn" style="display: none">
+          Lock Slug
+        </button>
+      </div>
+      <div class="muted" id="slugNote" style="display: none">
+        Slug is locked during edit to avoid breaking links.
+      </div>
+      <div class="row">
+        <input id="excerpt" placeholder="Excerpt" style="width: 100%" />
+      </div>
+      <div class="column" style="width: 100%; align-items: flex-start;">
+        <div id="contentEditor" class="editor" style="width: 100%"></div>
+      </div>
+      <div class="row">
+        <input id="author" placeholder="Author" />
+        <input id="date" type="date" />
+        <input id="time" type="time" step="60" placeholder="HH:MM" />
+      </div>
+      <div class="row">
+        <input id="image" placeholder="Image URL" style="width: 100%" />
+        <button type="button" onclick="openMedia()">Media Library</button>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="featured" /> Featured</label>
+        <select id="categorySelect"></select>
+        <button id="createPublishBtn" onclick="createPublish()">Publish</button>
+        <button id="createScheduleBtn" onclick="createSchedule()">
+          Schedule
+        </button>
+        <button id="createDraftBtn" onclick="createDraft()">
+          Save as Draft
+        </button>
+        <button id="saveBtn" onclick="updateSimple()" style="display: none">
+          Save Changes
+        </button>
+        <button
+          id="savePublishBtn"
+          onclick="updatePublish()"
+          style="display: none"
+        >
+          Publish
+        </button>
+        <button
+          id="saveScheduleBtn"
+          onclick="updateSchedule()"
+          style="display: none"
+        >
+          Schedule
+        </button>
+        <button id="cancelEditBtn" onclick="cancelEdit()" style="display: none">
+          Cancel
+        </button>
+      </div>
+      <div class="row" style="justify-content: flex-end; margin-top: 8px">
+        <button id="clearFormBtn" onclick="clearFormConfirm()" class="muted">
+          Clear Form
+        </button>
       </div>
     </div>
 
     <div class="card">
       <h3>Posts</h3>
+      <div class="row">
+        <input
+          id="searchPosts"
+          placeholder="Search posts"
+          style="width: 100%"
+        />
+      </div>
       <div id="posts"></div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
     <script>
+      // Initialize Quill WYSIWYG
+      const quill = new Quill("#contentEditor", { theme: "snow" });
+
+      // Slug utilities
+      const slugInput = document.getElementById("slug");
+      const titleInput = document.getElementById("title");
+      const genSlugBtn = document.getElementById("genSlugBtn");
+      const editSlugBtn = document.getElementById("editSlugBtn");
+      const lockSlugBtn = document.getElementById("lockSlugBtn");
+      const slugNote = document.getElementById("slugNote");
+      let slugTouched = false;
+      let isEditing = false;
+      let isSlugEditable = true;
+
+      const slugify = (value) => {
+        return (value || "")
+          .toString()
+          .normalize("NFKD")
+          .replace(/[\u0300-\u036f]/g, "") // strip diacritics
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]+/g, "-") // non-alnum -> '-'
+          .replace(/^-+|-+$/g, ""); // trim hyphens
+      };
+
+      const maybeAutoSlug = () => {
+        if (isEditing) return; // never auto-change slug while editing an existing post
+        if (!slugTouched || slugInput.value.trim() === "") {
+          slugInput.value = slugify(titleInput.value);
+        }
+      };
+
+      titleInput.addEventListener("input", maybeAutoSlug);
+      slugInput.addEventListener("input", () => {
+        slugTouched = true;
+      });
+      genSlugBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        slugInput.value = slugify(titleInput.value);
+        slugTouched = true;
+      });
+
+      const setSlugEditable = (editable) => {
+        isSlugEditable = editable;
+        slugInput.disabled = !editable;
+        genSlugBtn.style.display = editable ? "" : "none";
+        if (isEditing) {
+          editSlugBtn.style.display = editable ? "none" : "";
+          lockSlugBtn.style.display = editable ? "" : "none";
+          slugNote.style.display = editable ? "none" : "";
+        } else {
+          editSlugBtn.style.display = "none";
+          lockSlugBtn.style.display = "none";
+          slugNote.style.display = "none";
+        }
+      };
+
+      editSlugBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (
+          !confirm(
+            "Editing the slug will change the URL and can break existing links. Continue?"
+          )
+        )
+          return;
+        setSlugEditable(true);
+      });
+
+      lockSlugBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        setSlugEditable(false);
+      });
+
       const api = (path, opts = {}) => {
-        const token = localStorage.getItem('svc_token') || ''
-        const headers = { 'content-type': 'application/json' }
-        if (token) headers['authorization'] = 'Bearer ' + token
-        return fetch(path, { ...opts, headers })
-      }
+        const token = localStorage.getItem("svc_token") || "";
+        const headers = { "content-type": "application/json" };
+        if (token) headers["authorization"] = "Bearer " + token;
+        return fetch(path, { ...opts, headers });
+      };
 
       async function loadData() {
-        const token = document.getElementById('serviceToken').value.trim()
-        if (token) localStorage.setItem('svc_token', token)
-        await refreshCategories()
-        await refreshPosts()
+        const token = document.getElementById("serviceToken").value.trim();
+        if (token) localStorage.setItem("svc_token", token);
+        await refreshPosts();
+        // Default date to today (local)
+        try {
+          const now = new Date();
+          const y = now.getFullYear();
+          const m = String(now.getMonth() + 1).padStart(2, "0");
+          const d = String(now.getDate()).padStart(2, "0");
+          document.getElementById("date").value = `${y}-${m}-${d}`;
+          document.getElementById("time").value = "09:00";
+        } catch {}
       }
 
-      async function refreshCategories() {
-        const res = await api('/api/categories')
-        if (!res.ok) { alert('Failed to load categories'); return }
-        const cats = await res.json()
-        const el = document.getElementById('categories')
-        el.innerHTML = cats.map(c => `<div>${c.name} <span class="muted">(${c.slug})</span></div>`).join('')
-        const sel = document.getElementById('categorySelect')
-        sel.innerHTML = cats.map(c => `<option value="${c.slug}">${c.name}</option>`).join('')
-      }
+      // --- Rendering helpers ---
 
-      async function refreshPosts() {
-        const res = await api('/api/posts')
-        if (!res.ok) { document.getElementById('posts').innerHTML = 'Failed to load posts'; return }
-        const posts = await res.json()
-        document.getElementById('posts').innerHTML = posts.map(p => `
+      const renderPosts = () => {
+        const posts = window._posts || [];
+        const q = (document.getElementById("searchPosts")?.value || "")
+          .trim()
+          .toLowerCase();
+        const filtered = q
+          ? posts.filter((p) =>
+              [p.title, p.slug, p.author, p.category, p.excerpt].some((v) =>
+                String(v || "")
+                  .toLowerCase()
+                  .includes(q)
+              )
+            )
+          : posts;
+        document.getElementById("posts").innerHTML = filtered
+          .map((p) => {
+            const now = new Date();
+            const d = p.date ? new Date(p.date) : null;
+            const isScheduled = !!(d && d > now);
+            const isDraft = Boolean(p.draft);
+            const isPublished = !isDraft && !isScheduled;
+            const dateStr = d ? d.toLocaleDateString() : "";
+            const timeStr = d
+              ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+              : "";
+            const statusDotClass = isDraft
+              ? "status-draft"
+              : isScheduled
+              ? "status-scheduled"
+              : "status-published";
+            const statusLabel = isDraft
+              ? "Draft"
+              : isScheduled
+              ? "Scheduled"
+              : "Published";
+            const timeLabel = isDraft ? "" : timeStr ? ` • ${timeStr}` : "";
+            return `
           <div class="row" style="justify-content: space-between;">
-            <div>
-              <strong>${p.title}</strong> <span class="muted">(${p.slug})</span>
-              <div class="muted">${p.category} • ${new Date(p.date).toLocaleDateString()}</div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span class="status-pill ${statusDotClass}">${statusLabel}</span>
+              <div>
+                <strong>${p.title}</strong> <span class="muted">(${
+              p.slug
+            })</span>
+                <div class="muted">${p.category} • ${dateStr}${timeLabel}</div>
+              </div>
             </div>
             <div>
+              <button onclick="editPost(${p.id})">Edit</button>
+              ${
+                !isDraft
+                  ? `<button onclick=\"unpublish(${p.id})\">Unpublish</button>`
+                  : ""
+              }
               <button onclick="del(${p.id})">Delete</button>
             </div>
           </div>
-        `).join('')
+        `;
+          })
+          .join("");
+      };
+
+      // --- Slug uniqueness helper ---
+      const getExistingSlugs = () =>
+        (window._posts || []).map((p) => ({
+          id: p.id,
+          slug: String(p.slug || "").toLowerCase(),
+        }));
+      const makeUniqueSlug = (base, excludeId = null) => {
+        let candidate = String(base || "").toLowerCase();
+        if (!candidate) return "";
+        const existing = new Set(
+          getExistingSlugs()
+            .filter((p) => p.id !== excludeId)
+            .map((p) => p.slug)
+        );
+        if (!existing.has(candidate)) return candidate;
+        let i = 2;
+        while (existing.has(`${candidate}-${i}`)) i++;
+        return `${candidate}-${i}`;
+      };
+
+      async function refreshCategories() {
+        /* no-op on posts page */
+      }
+
+      async function refreshPosts() {
+        const res = await api("/api/posts?all=1");
+        if (!res.ok) {
+          document.getElementById("posts").innerHTML = "Failed to load posts";
+          return;
+        }
+        const posts = await res.json();
+        window._posts = posts;
+        renderPosts();
       }
 
       async function createCategory() {
-        const name = document.getElementById('catName').value.trim()
-        const slug = document.getElementById('catSlug').value.trim()
-        const res = await api('/api/categories', { method: 'POST', body: JSON.stringify({ name, slug }) })
-        if (!res.ok) { alert('Failed to create category'); return }
-        document.getElementById('catName').value = ''
-        document.getElementById('catSlug').value = ''
-        await refreshCategories()
+        const name = document.getElementById("catName").value.trim();
+        const slug = document.getElementById("catSlug").value.trim();
+        const res = await api("/api/categories", {
+          method: "POST",
+          body: JSON.stringify({ name, slug }),
+        });
+        if (!res.ok) {
+          alert("Failed to create category");
+          return;
+        }
+        document.getElementById("catName").value = "";
+        document.getElementById("catSlug").value = "";
+        await refreshCategories();
       }
 
-      async function createPost() {
-        const payload = {
-          title: document.getElementById('title').value.trim(),
-          slug: document.getElementById('slug').value.trim(),
-          excerpt: document.getElementById('excerpt').value.trim(),
-          content: document.getElementById('content').value.trim(),
-          author: document.getElementById('author').value.trim(),
-          date: document.getElementById('date').value ? new Date(document.getElementById('date').value) : undefined,
-          image: document.getElementById('image').value.trim() || undefined,
-          featured: document.getElementById('featured').checked,
-          categorySlug: document.getElementById('categorySelect').value,
+      // --- Media library ---
+      function openMedia() {
+        const token = localStorage.getItem("svc_token") || "";
+        const overlay = document.createElement("div");
+        overlay.style.position = "fixed";
+        overlay.style.inset = "0";
+        overlay.style.background = "rgba(0,0,0,0.4)";
+        overlay.style.zIndex = "9999";
+
+        const modal = document.createElement("div");
+        modal.style.position = "absolute";
+        modal.style.top = "50%";
+        modal.style.left = "50%";
+        modal.style.transform = "translate(-50%, -50%)";
+        modal.style.background = "#fff";
+        modal.style.border = "1px solid #ddd";
+        modal.style.borderRadius = "8px";
+        modal.style.width = "min(800px, 90vw)";
+        modal.style.maxHeight = "80vh";
+        modal.style.overflow = "auto";
+        modal.style.padding = "16px";
+
+        modal.innerHTML = `
+          <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0">Media Library</h3>
+            <button id="mediaClose">Close</button>
+          </div>
+          <div style="margin-bottom:12px;">
+            <form id="mediaUploadForm" enctype="multipart/form-data">
+              <input type="file" id="mediaFile" accept="image/*" />
+              <button type="submit">Upload</button>
+              <span id="mediaError" class="muted" style="margin-left:8px;"></span>
+            </form>
+          </div>
+          <div id="mediaGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap:12px;"></div>
+        `;
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        const close = () => document.body.removeChild(overlay);
+        modal.querySelector("#mediaClose").addEventListener("click", close);
+
+        const grid = modal.querySelector("#mediaGrid");
+        const uploadForm = modal.querySelector("#mediaUploadForm");
+        uploadForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const file = modal.querySelector("#mediaFile").files[0];
+          if (!file) return;
+          const fd = new FormData();
+          fd.append("file", file);
+          const res = await fetch("/api/media", {
+            method: "POST",
+            headers: token ? { authorization: "Bearer " + token } : undefined,
+            body: fd,
+          });
+          if (!res.ok) {
+            const errText = await res.text().catch(() => "");
+            modal.querySelector("#mediaError").textContent =
+              "Upload failed" + (errText ? `: ${errText}` : "");
+            return;
+          }
+          await loadMedia();
+          uploadForm.reset();
+          modal.querySelector("#mediaError").textContent = "";
+        });
+
+        const select = (url) => {
+          document.getElementById("image").value = url;
+          close();
+        };
+
+        async function loadMedia() {
+          grid.innerHTML = "Loading...";
+          const res = await fetch("/api/media", {
+            headers: token ? { authorization: "Bearer " + token } : undefined,
+          });
+          if (!res.ok) {
+            grid.innerHTML = "Failed to load media";
+            return;
+          }
+          const items = await res.json();
+          grid.innerHTML = items
+            .map(
+              (m) => `
+            <div style="border:1px solid #eee; padding:6px; border-radius:6px; display:flex; flex-direction:column; gap:6px;">
+              <img src="${m.url}" alt="${m.filename}" style="width:100%; height:90px; object-fit:cover; border-radius:4px;"/>
+              <button data-url="${m.url}">Select</button>
+            </div>
+          `
+            )
+            .join("");
+          Array.from(grid.querySelectorAll("button[data-url]")).forEach(
+            (btn) => {
+              btn.addEventListener("click", () =>
+                select(btn.getAttribute("data-url"))
+              );
+            }
+          );
         }
-        const res = await api('/api/posts', { method: 'POST', body: JSON.stringify(payload) })
-        if (!res.ok) { alert('Failed to create post'); return }
-        document.getElementById('title').value = ''
-        document.getElementById('slug').value = ''
-        document.getElementById('excerpt').value = ''
-        document.getElementById('content').value = ''
-        document.getElementById('author').value = ''
-        document.getElementById('date').value = ''
-        document.getElementById('image').value = ''
-        document.getElementById('featured').checked = false
-        await refreshPosts()
+
+        loadMedia();
+      }
+
+      const buildLocalDateTime = (dateStr, timeStr) => {
+        if (!dateStr && !timeStr) return undefined;
+        const [yy, mm, dd] = (dateStr || "").split("-").map(Number);
+        let hh = 9,
+          mi = 0;
+        if (timeStr) {
+          const [h, m] = timeStr.split(":").map(Number);
+          if (Number.isFinite(h)) hh = h;
+          if (Number.isFinite(m)) mi = m;
+        }
+        if (!yy || !mm || !dd) return undefined;
+        return new Date(yy, mm - 1, dd, hh, mi, 0, 0);
+      };
+
+      async function submitCreate(mode) {
+        const htmlContent = quill.root.innerHTML.trim();
+        const isEmpty = htmlContent === "" || htmlContent === "<p><br></p>";
+        const rawSlug =
+          document.getElementById("slug").value.trim() ||
+          slugify(document.getElementById("title").value.trim());
+        const ensuredSlug = makeUniqueSlug(rawSlug);
+        const dateStr = document.getElementById("date").value;
+        const timeStr = document.getElementById("time").value;
+        let date;
+        let draft;
+        if (mode === "publish") {
+          date = new Date();
+          draft = false;
+        } else if (mode === "schedule") {
+          date = buildLocalDateTime(dateStr, timeStr);
+          draft = false;
+          if (!date) {
+            alert("Please provide a valid date and time to schedule.");
+            return;
+          }
+        } else {
+          // draft
+          date = buildLocalDateTime(dateStr, timeStr) || new Date();
+          draft = true;
+        }
+        const payload = {
+          title: document.getElementById("title").value.trim(),
+          slug: ensuredSlug,
+          excerpt: document.getElementById("excerpt").value.trim(),
+          content: isEmpty ? "" : htmlContent,
+          author: document.getElementById("author").value.trim(),
+          date,
+          image: document.getElementById("image").value.trim() || undefined,
+          featured: document.getElementById("featured").checked,
+          draft,
+          categorySlug: document.getElementById("categorySelect").value,
+        };
+        let res = await api("/api/posts", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        if (res.status === 409) {
+          // slug collision on server; append a suffix once and retry
+          payload.slug = makeUniqueSlug(payload.slug);
+          res = await api("/api/posts", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+        }
+        if (!res.ok) {
+          alert("Failed to create post");
+          return;
+        }
+        clearForm();
+        await refreshPosts();
+      }
+
+      window.createPublish = () => submitCreate("publish");
+      window.createSchedule = () => submitCreate("schedule");
+      window.createDraft = () => submitCreate("draft");
+
+      // --- Edit / Update logic ---
+      let _editingId = null;
+      let _editingOriginal = null;
+      let _editingIsDraft = false;
+
+      function setForm(post) {
+        const formatForInput = (iso) => {
+          if (!iso) return "";
+          const d = new Date(iso);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          return `${y}-${m}-${day}`;
+        };
+        document.getElementById("title").value = post.title || "";
+        document.getElementById("slug").value = post.slug || "";
+        document.getElementById("excerpt").value = post.excerpt || "";
+        quill.root.innerHTML = post.content || "";
+        document.getElementById("author").value = post.author || "";
+        document.getElementById("date").value = formatForInput(post.date);
+        try {
+          const d = post.date ? new Date(post.date) : null;
+          document.getElementById("time").value = d
+            ? `${String(d.getHours()).padStart(2, "0")}:${String(
+                d.getMinutes()
+              ).padStart(2, "0")}`
+            : "09:00";
+        } catch {
+          document.getElementById("time").value = "09:00";
+        }
+        document.getElementById("image").value = post.image || "";
+        document.getElementById("featured").checked = Boolean(post.featured);
+        _editingIsDraft = Boolean(post.draft);
+        // Map category name -> slug if possible
+        // Category preselect is not available on Posts page; keep current selection
+      }
+
+      function clearForm() {
+        document.getElementById("title").value = "";
+        document.getElementById("slug").value = "";
+        document.getElementById("excerpt").value = "";
+        quill.setContents([]);
+        document.getElementById("author").value = "";
+        // reset to today's local date
+        try {
+          const now = new Date();
+          const y = now.getFullYear();
+          const m = String(now.getMonth() + 1).padStart(2, "0");
+          const d = String(now.getDate()).padStart(2, "0");
+          document.getElementById("date").value = `${y}-${m}-${d}`;
+          document.getElementById("time").value = "09:00";
+        } catch {
+          document.getElementById("date").value = "";
+        }
+        document.getElementById("image").value = "";
+        document.getElementById("featured").checked = false;
+      }
+
+      function setEditingMode(enabled) {
+        const createPublishBtn = document.getElementById("createPublishBtn");
+        const createScheduleBtn = document.getElementById("createScheduleBtn");
+        const createDraftBtn = document.getElementById("createDraftBtn");
+        const saveBtn = document.getElementById("saveBtn");
+        const savePublishBtn = document.getElementById("savePublishBtn");
+        const saveScheduleBtn = document.getElementById("saveScheduleBtn");
+        const cancelBtn = document.getElementById("cancelEditBtn");
+        const clearBtn = document.getElementById("clearFormBtn");
+        if (enabled) {
+          isEditing = true;
+          // base state for edit: show Save only
+          createPublishBtn.style.display = "none";
+          createScheduleBtn.style.display = "none";
+          createDraftBtn.style.display = "none";
+          saveBtn.style.display = "";
+          // Only show publish/schedule CTAs when editing an unpublished (draft) post
+          if (_editingIsDraft) {
+            savePublishBtn.style.display = "";
+            saveScheduleBtn.style.display = "";
+          } else {
+            savePublishBtn.style.display = "none";
+            saveScheduleBtn.style.display = "none";
+          }
+          cancelBtn.style.display = "";
+          if (clearBtn) clearBtn.style.display = "none";
+          // lock slug by default during edit
+          setSlugEditable(false);
+          editSlugBtn.style.display = "";
+          slugNote.style.display = "";
+        } else {
+          isEditing = false;
+          createPublishBtn.style.display = "";
+          createScheduleBtn.style.display = "";
+          createDraftBtn.style.display = "";
+          saveBtn.style.display = "none";
+          savePublishBtn.style.display = "none";
+          saveScheduleBtn.style.display = "none";
+          cancelBtn.style.display = "none";
+          if (clearBtn) clearBtn.style.display = "";
+          // for new posts, slug is editable and auto-generated
+          setSlugEditable(true);
+          slugTouched = false;
+        }
+      }
+
+      window.editPost = function (id) {
+        const posts = window._posts || [];
+        const p = posts.find((x) => x.id === id);
+        if (!p) return;
+        _editingId = id;
+        _editingOriginal = { ...p };
+        setForm(p);
+        setEditingMode(true);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      };
+
+      window.cancelEdit = function () {
+        _editingId = null;
+        _editingOriginal = null;
+        clearForm();
+        setEditingMode(false);
+      };
+
+      window.clearFormConfirm = function () {
+        if (!confirm("Clear the form? This will discard unsaved changes."))
+          return;
+        if (_editingId && _editingOriginal) {
+          setForm(_editingOriginal);
+          // keep editing mode as-is (slug stays locked)
+        } else {
+          clearForm();
+        }
+      };
+
+      async function updateSimple() {
+        if (!_editingId) return;
+        const htmlContent = quill.root.innerHTML.trim();
+        const isEmpty = htmlContent === "" || htmlContent === "<p><br></p>";
+        const rawSlug =
+          document.getElementById("slug").value.trim() ||
+          slugify(document.getElementById("title").value.trim());
+        const ensuredSlug = makeUniqueSlug(rawSlug, _editingId);
+        const dateStr = document.getElementById("date").value;
+        const timeStr = document.getElementById("time").value;
+        const date = buildLocalDateTime(dateStr, timeStr);
+        const payload = {
+          title: document.getElementById("title").value.trim(),
+          slug: ensuredSlug,
+          excerpt: document.getElementById("excerpt").value.trim(),
+          content: isEmpty ? "" : htmlContent,
+          author: document.getElementById("author").value.trim(),
+          date,
+          image: document.getElementById("image").value.trim() || undefined,
+          featured: document.getElementById("featured").checked,
+          categorySlug: document.getElementById("categorySelect").value,
+        };
+        let res = await api("/api/posts/" + _editingId, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
+        if (res.status === 409) {
+          payload.slug = makeUniqueSlug(payload.slug, _editingId);
+          res = await api("/api/posts/" + _editingId, {
+            method: "PUT",
+            body: JSON.stringify(payload),
+          });
+        }
+        if (!res.ok) {
+          alert("Failed to update post");
+          return;
+        }
+        _editingId = null;
+        _editingOriginal = null;
+        clearForm();
+        setEditingMode(false);
+        await refreshPosts();
+      }
+
+      async function updatePublish() {
+        if (!_editingId) return;
+        // Save all changes and publish now
+        const htmlContent = quill.root.innerHTML.trim();
+        const isEmpty = htmlContent === "" || htmlContent === "<p><br></p>";
+        const rawSlug =
+          document.getElementById("slug").value.trim() ||
+          slugify(document.getElementById("title").value.trim());
+        const ensuredSlug = makeUniqueSlug(rawSlug, _editingId);
+        const date = new Date();
+        const payload = {
+          title: document.getElementById("title").value.trim(),
+          slug: ensuredSlug,
+          excerpt: document.getElementById("excerpt").value.trim(),
+          content: isEmpty ? "" : htmlContent,
+          author: document.getElementById("author").value.trim(),
+          date,
+          image: document.getElementById("image").value.trim() || undefined,
+          featured: document.getElementById("featured").checked,
+          draft: false,
+          categorySlug: document.getElementById("categorySelect").value,
+        };
+        let res = await api("/api/posts/" + _editingId, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
+        if (res.status === 409) {
+          payload.slug = makeUniqueSlug(payload.slug, _editingId);
+          res = await api("/api/posts/" + _editingId, {
+            method: "PUT",
+            body: JSON.stringify(payload),
+          });
+        }
+        if (!res.ok) {
+          alert("Failed to publish");
+          return;
+        }
+        _editingId = null;
+        _editingOriginal = null;
+        clearForm();
+        setEditingMode(false);
+        await refreshPosts();
+      }
+
+      async function updateSchedule() {
+        if (!_editingId) return;
+        const htmlContent = quill.root.innerHTML.trim();
+        const isEmpty = htmlContent === "" || htmlContent === "<p><br></p>";
+        const rawSlug =
+          document.getElementById("slug").value.trim() ||
+          slugify(document.getElementById("title").value.trim());
+        const ensuredSlug = makeUniqueSlug(rawSlug, _editingId);
+        const dateStr = document.getElementById("date").value;
+        const timeStr = document.getElementById("time").value;
+        const date = buildLocalDateTime(dateStr, timeStr);
+        if (!date) {
+          alert("Please provide a valid date and time to schedule.");
+          return;
+        }
+        const payload = {
+          title: document.getElementById("title").value.trim(),
+          slug: ensuredSlug,
+          excerpt: document.getElementById("excerpt").value.trim(),
+          content: isEmpty ? "" : htmlContent,
+          author: document.getElementById("author").value.trim(),
+          date,
+          image: document.getElementById("image").value.trim() || undefined,
+          featured: document.getElementById("featured").checked,
+          draft: false,
+          categorySlug: document.getElementById("categorySelect").value,
+        };
+        let res = await api("/api/posts/" + _editingId, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
+        if (res.status === 409) {
+          payload.slug = makeUniqueSlug(payload.slug, _editingId);
+          res = await api("/api/posts/" + _editingId, {
+            method: "PUT",
+            body: JSON.stringify(payload),
+          });
+        }
+        if (!res.ok) {
+          alert("Failed to schedule");
+          return;
+        }
+        _editingId = null;
+        _editingOriginal = null;
+        clearForm();
+        setEditingMode(false);
+        await refreshPosts();
       }
 
       async function del(id) {
-        if (!confirm('Delete this post?')) return
-        const res = await api('/api/posts/' + id, { method: 'DELETE' })
-        if (!res.ok) { alert('Delete failed'); return }
-        await refreshPosts()
+        if (!confirm("Delete this post?")) return;
+        const res = await api("/api/posts/" + id, { method: "DELETE" });
+        if (!res.ok) {
+          alert("Delete failed");
+          return;
+        }
+        await refreshPosts();
       }
+
+      async function unpublish(id) {
+        if (
+          !confirm(
+            "Unpublish this post? It will no longer be publicly visible."
+          )
+        )
+          return;
+        let res = await api("/api/posts/" + id + "/unpublish", {
+          method: "POST",
+        });
+        if (res.status === 404) {
+          // Fallback for servers without the convenience endpoint: issue a PUT
+          res = await api("/api/posts/" + id, {
+            method: "PUT",
+            body: JSON.stringify({ draft: true }),
+          });
+        }
+        if (!res.ok) {
+          alert("Unpublish failed");
+          return;
+        }
+        await refreshPosts();
+      }
+
+      // Wire up search inputs
+      document
+        .getElementById("searchCategories")
+        ?.addEventListener("input", renderCategories);
+      document
+        .getElementById("searchPosts")
+        ?.addEventListener("input", renderPosts);
     </script>
   </body>
 </html>
